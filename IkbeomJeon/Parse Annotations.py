@@ -116,7 +116,7 @@ def grab_frame_cv2(video_file, frame_id):
 
 ##
 
-def save_data(save_filename, video_filename, annotation_file, skip_volume, show_window):
+def save_data(save_dirpath, video_filename, annotation_file, skip_volume, show_window):
   sequence = annotation_protocol.Sequence()
 
   with open(annotation_file, 'rb') as pb:
@@ -131,18 +131,14 @@ def save_data(save_filename, video_filename, annotation_file, skip_volume, show_
       break
 
     frame = cv2.flip(cv2.transpose(frame2), 1)
-
     if frame_id % skip_volume == 0:
       annotation, cat, num_keypoints, types = get_frame_annotation(sequence, frame_id)
       result = graphics.draw_annotation_on_image(frame, annotation, num_keypoints)
-
       result = cv2.resize(result, (480, 640), interpolation = cv2.INTER_AREA)
 
       if show_window == True:
         cv2.imshow("result", result)
         key = cv2.waitKey(1)
-        if key == 'q':
-          break
 
     frame_id+=1
 
@@ -150,19 +146,39 @@ def save_data(save_filename, video_filename, annotation_file, skip_volume, show_
   cv2.destroyAllWindows()
 
   ##
+def get_source_data_path(root_path, class_names):
+
+  video_filepaths = []
+  geometry_filepaths = []
+  annotation_filepaths = []
+
+  video_dirpath = f'{root_path}/videos'
+  annotation_dirpath = f'{root_path}/annotations'
+
+  for class_name in class_names:
+    sub1 = f'{video_dirpath}/{class_name}'
+    #for (paths, batch_names, files) in os.walk(target):
+    batch_names = os.listdir(sub1)
+    for batch_name in batch_names:
+      sub2 = f'{sub1}/{batch_name}'
+      idx_names = os.listdir(sub2)
+      for idx_name in idx_names:
+        sub3 = f'{sub2}/{idx_name}'
+
+        video_filepaths.append(f'{sub3}/video.mov')
+        geometry_filepaths.append(f'{sub3}/geometry.pbdata')
+        annotation_filepaths.append(f'{annotation_dirpath}/{class_name}/{batch_name}/{idx_name}.pbdata')
+
+  return video_filepaths, geometry_filepaths, annotation_filepaths
+##
 root_path = "e:/mobilepose"
-class_names = ['shoe', 'chair']
+save_dirname = 'annotation_csv'
+class_names = ['shoe', ]
+skip_count = 10
 
-#batch_name = 'batch-1'
-#video_id = 0
-#annotation_file = f'{root_path}/annotations/{class_name}/{batch_name}/{video_id}.pbdata'
-#video_filename = f'{root_path}/videos/{class_name}/{batch_name}/{video_id}/video.MOV'
-#geometry_filename = f'{root_path}/videos/{class_name}/{batch_name}/{video_id}/geometry.pbdata'  # a.k.a. AR metadata
-batch_id = 'batch-1/0'
-for class_name in class_names:
-  annotation_file = f'{root_path}/annotations/{class_name}/{batch_id}.pbdata'
-  video_filename = f'{root_path}/videos/{class_name}/{batch_id}/video.MOV'
-  geometry_filename = f'{root_path}/videos/{class_name}/{batch_id}/geometry.pbdata'  # a.k.a. AR metadata
+video_filepaths, geometry_filepaths, annotation_filepaths = \
+  get_source_data_path(root_path, class_names)
 
-  save_filename = "save.csv"
-  save_data(save_filename, video_filename,annotation_file, 10, True)
+for i in range(len(video_filepaths)):
+  save_data(save_dirname, video_filepaths[i], annotation_filepaths[i], skip_count, True)
+
