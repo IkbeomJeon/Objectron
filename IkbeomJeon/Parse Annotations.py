@@ -130,19 +130,16 @@ def save_data(save_filename, video_filename, annotation_file, skip_volume, show_
     if ret == False:
       break
 
-    frame = cv2.transpose(frame2)
-    frame = cv2.flip(frame, 1)
+    frame = cv2.flip(cv2.transpose(frame2), 1)
 
     if frame_id % skip_volume == 0:
-      #frame = grab_frame_cv2(video_filename, frame_id)
       annotation, cat, num_keypoints, types = get_frame_annotation(sequence, frame_id)
-      image = graphics.draw_annotation_on_image(frame, annotation, num_keypoints)
-      #plt.subplots(figsize = (8,6))
+      result = graphics.draw_annotation_on_image(frame, annotation, num_keypoints)
 
-      image2 = cv2.resize(frame, (480, 640), interpolation = cv2.INTER_AREA)
+      result = cv2.resize(result, (480, 640), interpolation = cv2.INTER_AREA)
 
       if show_window == True:
-        cv2.imshow("aa", image2)
+        cv2.imshow("result", result)
         key = cv2.waitKey(1)
         if key == 'q':
           break
