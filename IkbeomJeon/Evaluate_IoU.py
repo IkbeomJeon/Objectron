@@ -75,42 +75,6 @@ def get_frame_annotation(sequence, frame_id):
   return (object_keypoints_2d, object_keypoints_3d, object_categories, keypoint_size_list,
           annotation_types)
 
-def grab_video_and_fram_annotaiton_data(video_filename, annotation_file, skip_volume, show_window):
-  sequence = annotation_protocol.Sequence()
-
-  with open(annotation_file, 'rb') as pb:
-    sequence.ParseFromString(pb.read())
-
-  cap = cv2.VideoCapture(video_filename)
-
-  frame_id = 0
-  while(True):
-    ret, frame2 = cap.read()
-    if ret == False:
-      break
-
-    frame = cv2.flip(cv2.transpose(frame2), 1)
-    if frame_id % skip_volume == 0:
-      keypoints_2d, keypoints_3d, cat, num_keypoints, types = get_frame_annotation(sequence, frame_id)
-
-      num_objects = len(num_keypoints)
-      keypoints = np.split(keypoints_3d, np.array(np.cumsum(num_keypoints)))
-      keypoints = [points.reshape(-1, 3) for points in keypoints]
-
-      for object_id in range(num_objects):
-        Evaluate_3DIOU(keypoints[object_id], keypoints[object_id], True)
-
-      if show_window == True:
-        result = graphics.draw_annotation_on_image(frame, keypoints_2d, num_keypoints)
-        result = cv2.resize(result, (480, 640), interpolation=cv2.INTER_AREA)
-        cv2.imshow("result", result)
-        key = cv2.waitKey(1)
-
-    frame_id+=1
-
-  cap.release()
-  cv2.destroyAllWindows()
-
 
 def draw_boxes(boxes=[], clips=[], colors=['r', 'b', 'g', 'k']):
     """Draw a list of boxes.
@@ -139,24 +103,38 @@ def draw_boxes(boxes=[], clips=[], colors=['r', 'b', 'g', 'k']):
     plt.draw()
     plt.show()
 
-def Evaluate_3DIOU(v1, v2, bDrawbox):
+def Calculate_3DIOU(v1, v2, num_objects, bDrawbox):
+    sum_loss = 0
+    sum_loss_sampling = 0
 
-    w1 = box.Box(vertices=v1)
-    w2 = box.Box(vertices=v2)
-    # Change the scale/position for testing
-    #b1 = box.Box.from_transformation(np.array(w1.rotation), np.array(w1.translation), np.array([3., 1., 0.5]))
-    #b2 = box.Box.from_transformation(np.array(w2.rotation), np.array(w2.translation), np.array([1.9, 1.6, 0.7]))
-    b1 = w1
-    b2 = w2
-    # 0.3,
-    loss = iou.IoU(b1, b2)
-    print('iou = ', loss.iou())
-    print('iou (via sampling)= ', loss.iou_sampling())
-    intersection_points = loss.intersection_points
+    for object_id in range(num_objects):
+        w1 = box.Box(vertices=v1[object_id])
+        w2 = box.Box(vertices=v2[object_id])
 
-    if bDrawbox == True:
-        draw_boxes([b1.vertices, b2.vertices], clips=loss.intersection_points)
+        # Change the scale/position for testing
+        #b1 = box.Box.from_transformation(np.array(w1.rotation), np.array(w1.translation), np.array([3., 1., 0.5]))
+        #b2 = box.Box.from_transformation(np.array(w2.rotation), np.array(w2.translation), np.array([1.9, 1.6, 0.7]))
 
+        b1 = w1
+        b2 = w2
+        # 0.3,
+        obj_loss = iou.IoU(b1, b2)
+
+        sum_loss += obj_loss.iou()
+        sum_loss_sampling += obj_loss.iou_sampling()
+
+        #print('iou = ', loss/num_objects)
+        #print('iou (via sampling)= ', loss_sampling/num_objects)
+
+        intersection_points = obj_loss.intersection_points
+
+        if bDrawbox == True:
+            draw_boxes([b1.vertices, b2.vertices], clips=obj_loss.intersection_points)
+
+    avg_loss = sum_loss/num_objects
+    loss_sampling  =  sum_loss_sampling/num_objects
+
+    return avg_loss
 
 def get_source_data_path(root_path, class_names):
 
@@ -183,14 +161,57 @@ def get_source_data_path(root_path, class_names):
 
   return video_filepaths, geometry_filepaths, annotation_filepaths
 
+def Evaluate_Video(video_filename, annotation_file, test_frame_count, show_window):
+  sequence = annotation_protocol.Sequence()
+
+  with open(annotation_file, 'rb') as pb:
+    sequence.ParseFromString(pb.read())
+
+  cap = cv2.VideoCapture(video_filename)
+
+  frame_id = 0
+
+  iou_frames = []
+
+  while(True):
+    ret, frame2 = cap.read()
+    if ret == False:
+      break
+
+    total_frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    skip_frame_count = int(total_frame_count/test_frame_count)
+
+    frame = cv2.flip(cv2.transpose(frame2), 1)
+    if frame_id % skip_frame_count == 0:
+      keypoints_2d, keypoints_3d, cat, num_keypoints, types = get_frame_annotation(sequence, frame_id)
+
+      num_objects = len(num_keypoints)
+      keypoints = np.split(keypoints_3d, np.array(np.cumsum(num_keypoints)))
+      keypoints = [points.reshape(-1, 3) for points in keypoints]
+
+      iou = Calculate_3DIOU(keypoints, keypoints, num_objects, False)
+      print(f'frame number : {frame_id}, IoU : {iou}')
+
+      if show_window == True:
+        result = graphics.draw_annotation_on_image(frame, keypoints_2d, num_keypoints)
+        result = cv2.resize(result, (480, 640), interpolation=cv2.INTER_AREA)
+        cv2.imshow("result", result)
+        key = cv2.waitKey(1)
+
+    frame_id+=1
+
+  cap.release()
+  cv2.destroyAllWindows()
+
 root_path = "e:/mobilepose"
 save_dirname = 'annotation_csv'
 class_names = ['shoe', ]
-skip_count = 10
+test_frame_count = 10
 
 video_filepaths, geometry_filepaths, annotation_filepaths = \
   get_source_data_path(root_path, class_names)
 
 for i in range(len(video_filepaths)):
-  grab_video_and_fram_annotaiton_data(video_filepaths[i], annotation_filepaths[i], skip_count, True)
+    print(f'## Test video : {video_filepaths[i]}')
+    Evaluate_Video(video_filepaths[i], annotation_filepaths[i], test_frame_count, True)
 
