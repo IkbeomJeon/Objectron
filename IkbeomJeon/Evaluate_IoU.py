@@ -201,7 +201,7 @@ def Evaluate_Video(video_filename, annotation_file, test_frame_count, show_windo
       keypoints = np.split(keypoints_3d, np.array(np.cumsum(num_keypoints)))
       keypoints = [points.reshape(-1, 3) for points in keypoints]
 
-      iou, proc_time = Calculate_3DIOU(keypoints, keypoints, num_objects, True)
+      iou, proc_time = Calculate_3DIOU(keypoints, keypoints, num_objects, False)
       sum_iou += iou
       sum_proc_time += proc_time
       count+=1
@@ -223,9 +223,9 @@ def Evaluate_Video(video_filename, annotation_file, test_frame_count, show_windo
 
   return (avg_iou, avg_proc_time)
 
-root_path = "e:/mobilepose"
+root_path = "../../datasets"
 save_dirname = 'annotation_csv'
-class_names = ['shoe', ]
+class_names = ['shoe', 'chair']
 test_frame_count = 3
 
 video_filepaths, geometry_filepaths, annotation_filepaths = \
@@ -244,4 +244,4 @@ for i in range(num_videos):
     total_proc_time += fps_video
 
 print(f'total avg iou : {total_avg_iou/num_videos}')
-print(f'total avg fps : {fps_video/num_videos}')
+print(f'total avg fps : {total_proc_time/num_videos}')
