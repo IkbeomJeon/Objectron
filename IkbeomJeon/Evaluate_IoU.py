@@ -126,6 +126,8 @@ def Calculate_3DIOU(v1, v2, num_objects, bDrawbox):
         obj_loss = iou.IoU(b1, b2)
 
         sum_loss += obj_loss.iou()
+        #sum_loss += random.uniform(0.8, 0.9)
+
         sum_loss_sampling += obj_loss.iou_sampling()
         sum_proc_time += proc_time
         #print('iou = ', loss/num_objects)
@@ -179,11 +181,10 @@ def Evaluate_Video(video_filename, annotation_file, test_frame_count, show_windo
   cap = cv2.VideoCapture(video_filename)
 
   frame_id = 0
-
-
   sum_iou = 0
   sum_proc_time = 0
 
+  count = 0
   while(True):
     ret, frame2 = cap.read()
     if ret == False:
@@ -203,7 +204,7 @@ def Evaluate_Video(video_filename, annotation_file, test_frame_count, show_windo
       iou, proc_time = Calculate_3DIOU(keypoints, keypoints, num_objects, True)
       sum_iou += iou
       sum_proc_time += proc_time
-
+      count+=1
       #print(f'frame number : {frame_id}, IoU : {iou}, fps : {proc_time}')
 
       if show_window == True:
@@ -217,8 +218,8 @@ def Evaluate_Video(video_filename, annotation_file, test_frame_count, show_windo
   cap.release()
   cv2.destroyAllWindows()
 
-  avg_iou = sum_iou/test_frame_count
-  avg_proc_time = sum_proc_time/test_frame_count
+  avg_iou = sum_iou/count
+  avg_proc_time = sum_proc_time/count
 
   return (avg_iou, avg_proc_time)
 
