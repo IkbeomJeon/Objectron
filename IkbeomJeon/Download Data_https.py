@@ -2,16 +2,17 @@ import requests
 import os
 
 class_names = [
-    "book",
+    #"book",
     "shoe",
     "chair",
-    "cup",
-    "bottle",
+    #"cup",
+    #"bottle",
 
 
 ]
 
 default_download_directory = "../../Datasets/"
+#default_download_directory = "e:/mobilepose/"
 
 for class_name in class_names:
     public_url = "https://storage.googleapis.com/objectron"
@@ -22,8 +23,17 @@ for class_name in class_names:
     # Download the first ten videos in cup test dataset
 
     for i in range(0, len(video_ids)):
-
         id = video_ids[i]
+
+        # video
+        download_directory_video = f"{default_download_directory}/videos/{id}"
+        video_file_path = f"{download_directory_video}/video.MOV"
+
+        if os.path.isfile(video_file_path) == True:
+            print(f'{video_file_path} is exists, download skiped')
+            continue
+
+
 
         video_filename = public_url + "/videos/" + id + "/video.MOV"
         metadata_filename = public_url + "/videos/" + id + "/geometry.pbdata"
@@ -34,12 +44,8 @@ for class_name in class_names:
         metadata = requests.get(metadata_filename)
         annotation = requests.get(annotation_filename)
 
-        download_directory_video = f"{default_download_directory}/videos/{id}"
         os.makedirs(download_directory_video, exist_ok=True)
 
-
-        #video
-        video_file_path = f"{download_directory_video}/video.MOV"
         file = open(video_file_path, "wb")
         file.write(video.content)
         file.close()
@@ -50,7 +56,6 @@ for class_name in class_names:
         file.write(metadata.content)
         file.close()
 
-
         #annotation
         download_directory_annotation = f"{default_download_directory}/annotations/{id}"
         os.makedirs(os.path.abspath(download_directory_annotation+'/../'), exist_ok=True)
@@ -60,6 +65,6 @@ for class_name in class_names:
         file.close()
 
         print("download done %d/%d (%s) : " % (i + 1, len(video_ids), id))
-        if i == 9 :
+        if i == 15 :
             break
 
