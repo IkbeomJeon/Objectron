@@ -2,10 +2,16 @@ import requests
 import os
 
 class_names = [
+    "book",
+    "shoe",
     "chair",
+    "cup",
+    "bottle",
+
+
 ]
 
-default_download_directory = "e:/mobilepose"
+default_download_directory = "../../Datasets/"
 
 for class_name in class_names:
     public_url = "https://storage.googleapis.com/objectron"
@@ -16,33 +22,34 @@ for class_name in class_names:
     # Download the first ten videos in cup test dataset
 
     for i in range(0, len(video_ids)):
+
         id = video_ids[i]
-        print("downloading %d/%d (%s) : "%(i+1, len(video_ids), id))
+
         video_filename = public_url + "/videos/" + id + "/video.MOV"
         metadata_filename = public_url + "/videos/" + id + "/geometry.pbdata"
         annotation_filename = public_url + "/annotations/" + id + ".pbdata"
 
         # video.content contains the video file.
-        #video = requests.get(video_filename)
-        #metadata = requests.get(metadata_filename)
+        video = requests.get(video_filename)
+        metadata = requests.get(metadata_filename)
         annotation = requests.get(annotation_filename)
 
         download_directory_video = f"{default_download_directory}/videos/{id}"
         os.makedirs(download_directory_video, exist_ok=True)
 
-        '''
+
         #video
-        video_file_path = f"{download_directory}/video.MOV"
+        video_file_path = f"{download_directory_video}/video.MOV"
         file = open(video_file_path, "wb")
         file.write(video.content)
         file.close()
 
         #meta
-        metadata_file_path = f"{download_directory}/geometry.pbdata"
+        metadata_file_path = f"{download_directory_video}/geometry.pbdata"
         file = open(metadata_file_path, "wb")
         file.write(metadata.content)
         file.close()
-        '''
+
 
         #annotation
         download_directory_annotation = f"{default_download_directory}/annotations/{id}"
@@ -52,4 +59,7 @@ for class_name in class_names:
         file.write(annotation.content)
         file.close()
 
+        print("download done %d/%d (%s) : " % (i + 1, len(video_ids), id))
+        if i == 10 :
+            break
 
