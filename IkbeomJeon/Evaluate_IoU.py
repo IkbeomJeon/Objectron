@@ -235,8 +235,8 @@ def Evaluate_Video(video_filename, annotation_file, result_filepaths, test_frame
 
     return (avg_iou, avg_proc_time)
 
-#root_path = "../../datasets"
-root_path = "e:/mobilepose"
+root_path = "../../datasets"
+#root_path = "e:/mobilepose"
 save_dirname = 'annotation_csv'
 class_names = ['shoe', 'chair']
 test_frame_count = 3
