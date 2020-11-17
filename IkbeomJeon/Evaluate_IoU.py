@@ -157,6 +157,7 @@ def get_source_data_path(root_path, class_names):
   video_filepaths = []
   geometry_filepaths = []
   annotation_filepaths = []
+  result_filepaths = []
 
   video_dirpath = f'{root_path}/videos'
   annotation_dirpath = f'{root_path}/annotations'
@@ -173,67 +174,74 @@ def get_source_data_path(root_path, class_names):
 
         video_filepaths.append(f'{sub3}/video.mov')
         geometry_filepaths.append(f'{sub3}/geometry.pbdata')
+        result_filepaths.append(f'{sub3}/result_pose_list.csv')
+
         annotation_filepaths.append(f'{annotation_dirpath}/{class_name}/{batch_name}/{idx_name}.pbdata')
 
-  return video_filepaths, geometry_filepaths, annotation_filepaths
+  return video_filepaths, geometry_filepaths, annotation_filepaths, result_filepaths
 
-def Evaluate_Video(video_filename, annotation_file, test_frame_count, show_window):
-  sequence = annotation_protocol.Sequence()
+def Evaluate_Video(video_filename, annotation_file, result_filepaths, test_frame_count, show_window):
+    if os.path.isfile(result_filepaths) == False:
+        print(f'result file is not exists.')
+        return
 
-  with open(annotation_file, 'rb') as pb:
-    sequence.ParseFromString(pb.read())
+    sequence = annotation_protocol.Sequence()
 
-  cap = cv2.VideoCapture(video_filename)
+    with open(annotation_file, 'rb') as pb:
+        sequence.ParseFromString(pb.read())
 
-  frame_id = 0
-  sum_iou = 0
-  sum_proc_time = 0
+        cap = cv2.VideoCapture(video_filename)
 
-  count = 0
-  while(True):
-    ret, frame2 = cap.read()
-    if ret == False:
-      break
+        frame_id = 0
+        sum_iou = 0
+        sum_proc_time = 0
 
-    total_frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    skip_frame_count = int(total_frame_count/test_frame_count)
+        count = 0
 
-    frame = cv2.flip(cv2.transpose(frame2), 1)
-    if frame_id % skip_frame_count == 0:
-      keypoints_2d, keypoints_3d, cat, num_keypoints, types = get_frame_annotation(sequence, frame_id)
+        while(True):
+            ret, frame2 = cap.read()
+            if ret == False:
+                break
 
-      num_objects = len(num_keypoints)
-      keypoints = np.split(keypoints_3d, np.array(np.cumsum(num_keypoints)))
-      keypoints = [points.reshape(-1, 3) for points in keypoints]
+            total_frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            skip_frame_count = int(total_frame_count/test_frame_count)
 
-      iou, proc_time = Calculate_3DIOU(keypoints, keypoints, num_objects, False)
-      sum_iou += iou
-      sum_proc_time += proc_time
-      count+=1
-      #print(f'frame number : {frame_id}, IoU : {iou}, fps : {proc_time}')
+            frame = cv2.flip(cv2.transpose(frame2), 1)
+            if frame_id % skip_frame_count == 0:
+                keypoints_2d, keypoints_3d, cat, num_keypoints, types = get_frame_annotation(sequence, frame_id)
+                num_objects = len(num_keypoints)
+                keypoints = np.split(keypoints_3d, np.array(np.cumsum(num_keypoints)))
+                keypoints = [points.reshape(-1, 3) for points in keypoints]
 
-      if show_window == True:
-        result = graphics.draw_annotation_on_image(frame, keypoints_2d, num_keypoints)
-        result = cv2.resize(result, (480, 640), interpolation=cv2.INTER_AREA)
-        cv2.imshow("result", result)
-        key = cv2.waitKey(1)
+                iou, proc_time = Calculate_3DIOU(keypoints, keypoints, num_objects, False)
+                sum_iou += iou
+                sum_proc_time += proc_time
+                count+=1
+                #print(f'frame number : {frame_id}, IoU : {iou}, fps : {proc_time}')
 
-    frame_id+=1
+                if show_window == True:
+                    result = graphics.draw_annotation_on_image(frame, keypoints_2d, num_keypoints)
+                    result = cv2.resize(result, (480, 640), interpolation=cv2.INTER_AREA)
+                    cv2.imshow("result", result)
+                    key = cv2.waitKey(1)
 
-  cap.release()
-  cv2.destroyAllWindows()
+            frame_id+=1
 
-  avg_iou = sum_iou/count
-  avg_proc_time = sum_proc_time/count
+    cap.release()
+    cv2.destroyAllWindows()
 
-  return (avg_iou, avg_proc_time)
+    avg_iou = sum_iou/count
+    avg_proc_time = sum_proc_time/count
 
-root_path = "../../datasets"
+    return (avg_iou, avg_proc_time)
+
+#root_path = "../../datasets"
+root_path = "e:/mobilepose"
 save_dirname = 'annotation_csv'
 class_names = ['shoe', 'chair']
 test_frame_count = 3
 
-video_filepaths, geometry_filepaths, annotation_filepaths = \
+video_filepaths, geometry_filepaths, annotation_filepaths, result_filepaths = \
   get_source_data_path(root_path, class_names)
 
 total_avg_iou = 0
@@ -242,7 +250,7 @@ num_videos = len(video_filepaths)
 
 for i in range(num_videos):
     print(f'## Test video : {video_filepaths[i]}')
-    iou_video, fps_video = Evaluate_Video(video_filepaths[i], annotation_filepaths[i], test_frame_count, True)
+    iou_video, fps_video = Evaluate_Video(video_filepaths[i], annotation_filepaths[i], result_filepaths[i], test_frame_count, True)
     print(f'avg iou : {iou_video}')
     print(f'avg fps : {fps_video}')
     total_avg_iou += iou_video
