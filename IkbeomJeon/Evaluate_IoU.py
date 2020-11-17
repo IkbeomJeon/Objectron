@@ -141,9 +141,14 @@ def Calculate_3DIOU(v1, v2, num_objects, bDrawbox):
         #draw_boxes([b1.vertices, b2.vertices], clips=obj_loss.intersection_points)
         draw_boxes(draw_box_list, clips=obj_loss.intersection_points)
 
-    avg_loss = sum_loss/num_objects
-    loss_sampling  =  sum_loss_sampling/num_objects
-    avg_proc_time = sum_proc_time/num_objects
+    if num_objects >= 1:
+        avg_loss = sum_loss/num_objects
+        loss_sampling  =  sum_loss_sampling/num_objects
+        avg_proc_time = sum_proc_time/num_objects
+    else:
+        avg_loss = sum_loss
+        loss_sampling = sum_loss_sampling
+        avg_proc_time = sum_proc_time
 
     return (avg_loss, avg_proc_time)
 
