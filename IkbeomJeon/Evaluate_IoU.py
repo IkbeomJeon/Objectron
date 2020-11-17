@@ -3,15 +3,13 @@
 import glob
 import os
 import subprocess
-from absl import app
-from absl import flags
 
 # import box as Box
 import cv2
 import numpy as np
 
 from google.protobuf import text_format
-from IPython.core.display import display, HTML
+#from IPython.core.display import display, HTML
 import matplotlib.pyplot as plt
 
 import sys
@@ -183,9 +181,8 @@ def get_source_data_path(root_path, class_names):
 
   return video_filepaths, geometry_filepaths, annotation_filepaths
 
-root_path = "e:/mobilepose"
-save_dirname = 'annotation_csv'
-class_names = ['shoe', ]
+root_path = "../../Datasets/"
+class_names = ['book', ]
 skip_count = 10
 
 video_filepaths, geometry_filepaths, annotation_filepaths = \
