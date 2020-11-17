@@ -60,6 +60,6 @@ for class_name in class_names:
         file.close()
 
         print("download done %d/%d (%s) : " % (i + 1, len(video_ids), id))
-        if i == 10 :
+        if i == 9 :
             break
 
